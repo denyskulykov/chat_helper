@@ -27,23 +27,17 @@ def get_user(_id) -> User:
     return users.get(_id)
 
 
+file_name_config = 'config_chat_id'
 def get_chat_id():
-    with open('config_chat_id', 'r') as f:
+    with open(file_name_config, 'r') as f:
         chat_id = f.read()
     return chat_id.strip()
 
 
-@bot.channel_post_handler(content_types=["text"])
-def get_channel_text(message):
-    if str(message.chat.id) != get_chat_id():
-        for admin in TELEGRAM_ADMIN:
-            keyboard = telebot.types.InlineKeyboardMarkup()
-            keyboard.add(
-                telebot.types.InlineKeyboardButton(
-                    text='Setup the chat for publishing', callback_data=f"set_chat|{message.chat.id}")
-            )
-            bot.send_message(admin, f'New chat: "{message.chat.title}", '
-                                    f'If you want to publish here, Click Setup button', reply_markup=keyboard)
+class Command:
+    set_chat = 'set_chat'
+    summary = 'summary'
+    publish = 'publish'
 
 
 @bot.message_handler(content_types=["text"])
@@ -58,24 +52,37 @@ def get_text(message):
     user.message = message.text
 
     keyboard = telebot.types.InlineKeyboardMarkup()
-    keyboard.add(telebot.types.InlineKeyboardButton(text='Give me summery, 30 words', callback_data=f"summery|30"))
-    keyboard.add(telebot.types.InlineKeyboardButton(text='Give me summery, 50 words', callback_data=f"summery|50"))
-    keyboard.add(telebot.types.InlineKeyboardButton(text='Give me summery, 100 words', callback_data=f"summery|100"))
+    keyboard.add(telebot.types.InlineKeyboardButton(text='Give me summery, 30 words', callback_data=f"{Command.summary}|30"))
+    keyboard.add(telebot.types.InlineKeyboardButton(text='Give me summery, 50 words', callback_data=f"{Command.summary}|50"))
+    keyboard.add(telebot.types.InlineKeyboardButton(text='Give me summery, 100 words', callback_data=f"{Command.summary}|100"))
 
     bot.send_message(message.from_user.id, 'Select command', reply_markup=keyboard)
 
 
-@bot.callback_query_handler(lambda query: query.data.startswith('set_chat'))
+@bot.channel_post_handler(content_types=["text"])
+def get_channel_text(message):
+    if str(message.chat.id) != get_chat_id():
+        for admin in TELEGRAM_ADMIN:
+            keyboard = telebot.types.InlineKeyboardMarkup()
+            keyboard.add(
+                telebot.types.InlineKeyboardButton(
+                    text='Setup the chat for publishing', callback_data=f"{Command.set_chat}|{message.chat.id}")
+            )
+            bot.send_message(admin, f'New chat: "{message.chat.title}", '
+                                    f'If you want to publish here, Click Setup button', reply_markup=keyboard)
+
+
+@bot.callback_query_handler(lambda query: query.data.startswith(Command.set_chat))
 def callback_set_chat(query):
     user = get_user(query.from_user.id)
     chat_id = query.data.split("|")[-1]
-    with open('config_chat_id', 'w') as f:
+    with open(file_name_config, 'w') as f:
         f.write(chat_id)
     bot.send_message(user.id, 'Ok')
 
 
-@bot.callback_query_handler(lambda query: query.data.startswith('summery'))
-def callback_summery(query):
+@bot.callback_query_handler(lambda query: query.data.startswith(Command.summary))
+def callback_summary(query):
     user = get_user(query.from_user.id)
     count = query.data.split("|")[-1]
     message = f"This is link {user.message}, Give me summary of this article. Should be {count} words."
@@ -94,13 +101,13 @@ def callback_summery(query):
 
     keyboard = telebot.types.InlineKeyboardMarkup()
     num = random.randint(1, 1000)
-    keyboard.add(telebot.types.InlineKeyboardButton(text='Publish it', callback_data=f"publish|{num}"))
+    keyboard.add(telebot.types.InlineKeyboardButton(text='Publish it', callback_data=f"{Command.publish}|{num}"))
 
     user.publish.update({num: f"{user.message}{result}"})
     bot.send_message(user.id, f"{user.message}{result}", reply_markup=keyboard)
 
 
-@bot.callback_query_handler(lambda query: query.data.startswith('publish'))
+@bot.callback_query_handler(lambda query: query.data.startswith(Command.publish))
 def callback_publish(query):
     user = get_user(query.from_user.id)
     num = int(query.data.split("|")[-1])
