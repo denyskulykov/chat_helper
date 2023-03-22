@@ -1,0 +1,13 @@
+[Unit]
+Description=chat_helper
+
+[Service]
+ExecStart=/bin/bash -c 'python3 [/root or /home/pi] /develop/chat_helper/bot_chat_helper.py'
+RestartSec=20
+Restart=always
+WorkingDirectory=[/root or /home/pi] /develop/chat_helper
+ExecStop=/bin/echo 'Stop'
+User=[root or pi]
+
+[Install]
+WantedBy=multi-user.target

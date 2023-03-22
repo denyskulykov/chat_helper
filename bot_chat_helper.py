@@ -6,9 +6,10 @@ import telebot
 from config import GPT_TOKEN, TELEGRAM_TOKEN, TELEGRAM_ADMIN
 
 openai.api_key = GPT_TOKEN
-
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
+
 users = {}
+file_name_config = 'config_chat_id'
 
 
 class User:
@@ -27,7 +28,6 @@ def get_user(_id) -> User:
     return users.get(_id)
 
 
-file_name_config = 'config_chat_id'
 def get_chat_id():
     with open(file_name_config, 'r') as f:
         chat_id = f.read()
@@ -42,12 +42,12 @@ class Command:
 
 @bot.message_handler(content_types=["text"])
 def get_text(message):
-    print(message.from_user.id)
-
     user = get_user(message.from_user.id)
-    # if user.id not in TELEGRAM_ADMIN:
-    #     bot.send_message(message.from_user.id, 'You are not Admin')
-    #     return
+    if user.id not in TELEGRAM_ADMIN:
+        bot.send_message(message.from_user.id, 'You are not Admin')
+        for admin in TELEGRAM_ADMIN:
+            bot.send_message(admin, f'Unknown user: {message.from_user}, You can add as Admin')
+        return
 
     user.message = message.text
 
