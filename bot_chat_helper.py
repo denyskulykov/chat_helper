@@ -17,6 +17,7 @@ class User:
         self.id = str(_id)
         self.message = ''
         self.publish = {}
+        self.message_for_deleting = []
 
     pass
 
@@ -85,26 +86,26 @@ def callback_set_chat(query):
 def callback_summary(query):
     user = get_user(query.from_user.id)
     count = query.data.split("|")[-1]
-    message = f"This is link {user.message}, Give me summary of this article. Should be {count} words."
 
-    bot.send_message(user.id, f">>> {message}...")
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-                {"role": "user", "content": message},
-            ]
-    )
+    for url in user.message.split():
+        message = f"This is link {url}, Give me summary of this article. Should be {count} words."
 
-    result = ''
-    for choice in response.choices:
-        result += choice.message.content
+        bot.send_message(user.id, f">>> {message} <<<\n==============================================")
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": message}]
+        )
 
-    keyboard = telebot.types.InlineKeyboardMarkup()
-    num = random.randint(1, 1000)
-    keyboard.add(telebot.types.InlineKeyboardButton(text='Publish it', callback_data=f"{Command.publish}|{num}"))
+        result = ''
+        for choice in response.choices:
+            result += choice.message.content
 
-    user.publish.update({num: f"{user.message}{result}"})
-    bot.send_message(user.id, f"{user.message}{result}", reply_markup=keyboard)
+        keyboard = telebot.types.InlineKeyboardMarkup()
+        num = random.randint(1, 1000)
+        keyboard.add(telebot.types.InlineKeyboardButton(text='Publish it', callback_data=f"{Command.publish}|{num}"))
+
+        user.publish.update({num: f"{url}{result}"})
+        bot.send_message(user.id, f"{url}{result}", reply_markup=keyboard)
 
 
 @bot.callback_query_handler(lambda query: query.data.startswith(Command.publish))
