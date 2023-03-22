@@ -87,7 +87,7 @@ def callback_summary(query):
     count = query.data.split("|")[-1]
     message = f"This is link {user.message}, Give me summary of this article. Should be {count} words."
 
-    bot.send_message(user.id, f">>{message}...")
+    bot.send_message(user.id, f">>> {message}...")
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=[
